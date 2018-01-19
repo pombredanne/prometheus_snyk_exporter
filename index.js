@@ -142,9 +142,14 @@ function getVulnerabilityCounts (issues) {
     types: {}
   };
 
-  for (var k = 0; k < issues.vulnerabilities.length; k++) {
-    let thisVuln = issues.vulnerabilities[k];
+  // dedupe vulnerabilities - the snyk API reports vulnerabilities as
+  // separate if they are introduced via different top-level packages.
+  // we remove duplicate occurrences by comparing the ID.
+  const vulnerabilities = _.uniqWith(issues.vulnerabilities, (v1, v2) => {
+    return v1.id === v2.id;
+  });
 
+  _.each(vulnerabilities, (thisVuln) => {
     const severity = thisVuln.severity;
     if (severity !== 'high' && severity !== 'medium' && severity !== 'low') {
       throw new Error('Invalid severity: ' + severity);
@@ -158,7 +163,8 @@ function getVulnerabilityCounts (issues) {
     } else {
       results.types[thisType]++;
     }
-  }
+  });
+
   return results;
 }
 

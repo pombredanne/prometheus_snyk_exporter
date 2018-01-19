@@ -1,5 +1,8 @@
 {
   "name": "snyk_exporter",
+  "engines": { 
+    "node" : ">=7.6" 
+  }, 
   "version": "0.0.1",
   "description": "Prometheus exporter for snyk.io data",
   "main": "index.js",

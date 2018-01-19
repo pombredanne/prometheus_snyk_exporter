@@ -67,9 +67,6 @@ metricsServer.get('/metrics', async (req, res) => {
     const response = await getProjects();
     await processProjects(response.data);
 
-    // let connection = await connect();
-    // await collect(connection, metrics);
-    // connection.close();
     res.send(prometheusClient.register.metrics());
   } catch (error) {
     // error connecting

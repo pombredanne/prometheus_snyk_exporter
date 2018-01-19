@@ -9,6 +9,15 @@ const SNYK_API_TOKEN = process.env.SNYK_API_TOKEN;
 const BASE_URL = process.env.SNYK_API_BASE_URL || 'https://snyk.io/api/v1';
 const ORG_NAME = process.env.SNYK_ORG_NAME;
 
+if (!ORG_NAME) {
+  console.error('Environment variable SNYK_ORG_NAME must be set');
+  process.exit(1);
+}
+if (!SNYK_API_TOKEN) {
+  console.error('Environment variable SNYK_API_TOKEN must be set');
+  process.exit(1);
+}
+
 const QUERY_PROJECTS = `/org/${ORG_NAME}/projects`;
 
 const DEBUG = process.env['SNYK_EXPORTER_DEBUG'] || false;

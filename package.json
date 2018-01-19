@@ -1,10 +1,11 @@
 {
   "name": "snyk_exporter",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Prometheus exporter for snyk.io data",
   "main": "index.js",
   "scripts": {
-    "format": "semistandard --fix"
+    "format": "semistandard --fix",
+    "build": "docker build . -t dnanexus/prometheus_snyk_exporter"
   },
   "author": "",
   "license": "MIT",

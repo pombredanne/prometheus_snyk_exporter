@@ -2,6 +2,12 @@
 
 A [prometheus exporter](https://prometheus.io) that scrapes the [snyk.io API](https://snyk.docs.apiary.io), collects aggregate information about your organiation's vulnerabilities, and exposes it as prometheus metrics.
 
+## Motivation
+
+The snyk.io dashboard provides a view of the current state of your project's security vulnerabilities.  Snyk also offers an enterprise product with the ability to track the number of vulnerabilities over time.  For many users, this may be sufficient.
+
+At DNAnexus, we're building a culture of observability and we wanted this information to be available to our internal monitoring system.  This way, we can not only track our security vulnerabilities over time, but also set up our own custom alerts and internal [SLOs](https://landing.google.com/sre/book/chapters/service-level-objectives.html) using Prometheus.   
+
 ## Prerequisites
 
 * An account with snyk.io.  It's free for open source projects, and low-frequency scans private projects.

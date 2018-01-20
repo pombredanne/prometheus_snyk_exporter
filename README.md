@@ -6,7 +6,13 @@ A [prometheus exporter](https://prometheus.io) that scrapes the [snyk.io API](ht
 
 The snyk.io dashboard provides a view of the current state of your project's security vulnerabilities.  Snyk also offers an enterprise product with the ability to track the number of vulnerabilities over time.  For many users, this may be sufficient.
 
-At DNAnexus, we're building a culture of observability and we wanted this information to be available to our internal monitoring system.  This way, we can not only track our security vulnerabilities over time, but also set up our own custom alerts and internal [SLOs](https://landing.google.com/sre/book/chapters/service-level-objectives.html) using Prometheus.   
+At DNAnexus, we're building a culture of observability and we wanted this information to be available to our internal monitoring system.  This way, we can not only track our security vulnerabilities over time, but also set up our own custom alerts and internal [SLOs](https://landing.google.com/sre/book/chapters/service-level-objectives.html) using Prometheus.
+
+This also allows you to create pretty Grafana dashboards like this:
+
+![snyk_dashboard](https://user-images.githubusercontent.com/1438478/35176929-5ff18dec-fd39-11e7-90f3-fec700ab37a8.jpg)
+
+(Dashboard will be open-sourced soon as well.)   
 
 ## Prerequisites
 

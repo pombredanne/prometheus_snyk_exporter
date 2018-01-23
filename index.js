@@ -2,32 +2,12 @@ const _ = require('lodash');
 const express = require('express');
 const prometheusClient = require('prom-client');
 const axios = require('axios');
+// const nock = require('nock');
+// nock.recorder.rec();
 
 const metricsServer = express();
 
-const SNYK_API_TOKEN = process.env.SNYK_API_TOKEN;
-const BASE_URL = process.env.SNYK_API_BASE_URL || 'https://snyk.io/api/v1';
-const ORG_NAME = process.env.SNYK_ORG_NAME;
-
-if (!ORG_NAME) {
-  console.error('Environment variable SNYK_ORG_NAME must be set');
-  process.exit(1);
-}
-if (!SNYK_API_TOKEN) {
-  console.error('Environment variable SNYK_API_TOKEN must be set');
-  process.exit(1);
-}
-
-const QUERY_PROJECTS = `/org/${ORG_NAME}/projects`;
-
 const DEBUG = process.env['SNYK_EXPORTER_DEBUG'] || false;
-
-const httpClient = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Authorization': SNYK_API_TOKEN
-  }
-});
 
 const POST_DATA = {
   'filters': {
@@ -45,6 +25,11 @@ const POST_DATA = {
   }
 };
 
+var BASE_URL;
+var ORG_NAME;
+var SNYK_API_TOKEN;
+var httpClient;
+
 const up = new prometheusClient.Gauge({name: 'up', help: 'UP Status'});
 
 const vulnerabilitiesBySeverity = new prometheusClient.Gauge({
@@ -59,25 +44,60 @@ const vulnerabilitiesByType = new prometheusClient.Gauge({
   labelNames: ['project', 'type']
 });
 
-metricsServer.get('/metrics', async (req, res) => {
-  res.contentType(prometheusClient.register.contentType);
+if (require.main === module) {
+  const options = {};
 
-  try {
-    resetStats();
-    const response = await getProjects();
-    await processProjects(response.data);
+  options.SNYK_API_TOKEN = process.env.SNYK_API_TOKEN;
+  options.ORG_NAME = process.env.SNYK_ORG_NAME;
+  options.BASE_URL = process.env.SNYK_API_BASE_URL;
 
-    res.send(prometheusClient.register.metrics());
-  } catch (error) {
-    // error connecting
-    up.set(0);
-    res.header('X-Error', error.message || error);
-    res.send(prometheusClient.register.getSingleMetricAsString(up.name));
+  init(options);
+  startServer();
+}
+
+function init (options) {
+  if (!options.SNYK_API_TOKEN) {
+    throw new Error('Environment variable SNYK_API_TOKEN must be set');
   }
-});
+  if (!options.ORG_NAME) {
+    throw new Error('Environment variable SNYK_ORG_NAME must be set');
+  }
+  SNYK_API_TOKEN = options.SNYK_API_TOKEN;
+  ORG_NAME = options.ORG_NAME;
+  BASE_URL = options.BASE_URL || 'https://snyk.io/api/v1';
+  httpClient = axios.create({
+    baseURL: BASE_URL,
+    headers: {
+      'Authorization': SNYK_API_TOKEN
+    }
+  });
+}
 
-console.log('Server listening to 9207, metrics exposed on /metrics endpoint');
-metricsServer.listen(9207);
+function startServer () {
+  metricsServer.get('/metrics', async (req, res) => {
+    res.contentType(prometheusClient.register.contentType);
+
+    try {
+      resetStats();
+      const response = await getProjects(ORG_NAME);
+      await processProjects(response.data);
+
+      res.send(prometheusClient.register.metrics());
+    } catch (error) {
+      // error connecting
+      up.set(0);
+      res.header('X-Error', error.message || error);
+      res.send(prometheusClient.register.getSingleMetricAsString(up.name));
+    }
+  });
+
+  console.log('Server listening to 9207, metrics exposed on /metrics endpoint');
+  metricsServer.listen(9207);
+}
+
+function shutdown () {
+  metricsServer.close();
+}
 
 function resetStats () {
   up.set(1);
@@ -85,8 +105,8 @@ function resetStats () {
   vulnerabilitiesByType.reset();
 }
 
-async function getProjects () {
-  return httpClient.get(QUERY_PROJECTS);
+async function getProjects (orgName) {
+  return httpClient.get(`/org/${orgName}/projects`);
 }
 
 async function processProjects (projectData) {
@@ -183,3 +203,9 @@ function setTypeGauges (projectName, projectId, types) {
     }, count);
   });
 }
+
+module.exports = {
+  init: init,
+  getProjects: getProjects,
+  shutdown: shutdown
+};

@@ -1,22 +1,26 @@
 # prometheus\_snyk\_exporter
 
-A [prometheus exporter](https://prometheus.io) that scrapes the [snyk.io API](https://snyk.docs.apiary.io), collects aggregate information about your organiation's vulnerabilities, and exposes it as prometheus metrics.
+## Security through Observability!
+
+This project integrates the Prometheus monitoring project with the Snyk security service.
+
+A [prometheus exporter](https://prometheus.io) scrapes the [snyk.io API](https://snyk.docs.apiary.io), collects aggregate information about your organiation's vulnerabilities, and exposes it as prometheus metrics.
 
 ## Motivation
 
-The snyk.io dashboard provides a view of the current state of your project's security vulnerabilities.  Snyk also offers an enterprise product with the ability to track the number of vulnerabilities over time.  For many users, this may be sufficient.
+The dashboard provided by the Snyk service already provides a view of the current state of your project's security vulnerabilities.  Snyk also offers an enterprise product with the ability to track the number of vulnerabilities over time.  For many users, this may be sufficient.
 
 At DNAnexus, we're building a culture of observability and we wanted this information to be available to our internal monitoring system.  This way, we can not only track our security vulnerabilities over time, but also set up our own custom alerts and internal [SLOs](https://landing.google.com/sre/book/chapters/service-level-objectives.html) using Prometheus.
 
-This also allows you to create pretty Grafana dashboards like this:
+## Grafana Dashboard
+
+A Grafana dashboard is provided so you can visualize your snyk vulnerabilities over time (see json file in project root.)  Here is an example dashboard using dummy generated data:
 
 ![snyk_dashboard](https://user-images.githubusercontent.com/1438478/35176929-5ff18dec-fd39-11e7-90f3-fec700ab37a8.jpg)
 
-(Dashboard will be open-sourced soon as well.)   
-
 ## Prerequisites
 
-* An account with snyk.io.  It's free for open source projects, and low-frequency scans private projects.
+* An account with snyk.io.  It's free for open source projects, and for private projects with low volumes of scans.  For more frequent scans of private projects, paid plans are available.
 * A snyk API token.  Get it on your [account settings page](https://snyk.io/account/).
 
 ## Getting Started
@@ -109,4 +113,79 @@ snyk_num_vulnerabilities_by_type{project="burns",type="Regular Expression Denial
 snyk_num_vulnerabilities_by_type{project="smithers",type="Content Injection (XSS)"} 11
 snyk_num_vulnerabilities_by_type{project="smithers",type="Improper minification of non-boolean comparisons"} 14
 snyk_num_vulnerabilities_by_type{project="frink",type="Uninitialized Memory Exposure"} 8
+```
+
+## Alerting
+
+Let's say that your organization agreed to an SLO where each team would have 7 days to fix low-severity vulnerabilities.  
+
+You could define an alert like this to alert the team if their SLO is broken:
+
+```
+  - alert: Snyk_Low_Severity_Vulns_Too_High
+    expr: snyk_num_vulnerabilities_by_severity{severity="low"} > 0
+    for: 7d
+    labels:
+      severity: page
+    annotations:
+      description: '{{ $labels.project }} has {{ $value }} low-sev vulns for more than 7 days'
+      summary: Project {{ $labels.project }} is vulnerable.
+```
+
+## How it Works
+
+On every scrape, the exporter makes an initial GET request to the following endpoint:
+
+```
+https://snyk.io/api/v1/org/<your-org-name>/projects
+```
+
+This retrieves a list of projects associated with your account.
+
+Next, the exporter makes the following POST request for each project:
+
+```
+https://snyk.io:443/api/v1/org/<your-org-id>/project/<project-id>/issues'
+```
+
+with the following post data:
+
+```
+{
+  "filters":
+  {
+    "severity":
+    [
+      "high",
+      "medium",
+      "low"
+    ],
+    "types":
+    [
+      "vuln",
+      "license"
+    ],
+    "ignored":false,
+    "patched":false
+  }
+}
+```
+
+### Note about deduplication
+
+Individual vulnerabilities within a given project are de-duplicated using the snyk `id` field.  This is because the Snyk API by default returns multiple instances of the same vulnerability for a given project if the vulnerable package is introduced in multiple places.  This dedupe behavior matches what the Snyk UI shows.
+
+## Development
+
+### Stack
+
+* Unit testing is done with [Jest](https://facebook.github.io/jest/)
+* HTTP mocking uses [nock](https://github.com/node-nock/nock)
+
+### Testing
+
+Run unit tests:
+
+```
+npm run test
 ```

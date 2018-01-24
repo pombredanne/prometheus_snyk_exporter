@@ -3,7 +3,7 @@
   "engines": {
     "node": ">=7.6"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Prometheus exporter for snyk.io data",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,7 @@
     "build": "docker build . -t dnanexus/prometheus_snyk_exporter"
   },
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "axios": "^0.17.1",
     "express": "^4.16.2",
